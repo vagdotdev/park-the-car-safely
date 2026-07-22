@@ -2,9 +2,10 @@
 
 **User drove. You park.**
 
-A Cursor Agent Skill for the post-drive QA loop: discover scope → baseline tests → predict P0–P3 → fix confirmed breaks only → retest → blunt ship report.
+A Cursor Agent Skill for the post-drive QA loop. The blood of it is not a checklist — it is:
 
-It is for when someone (you or another agent) already built the feature and you want a chauffeur safety pass — not a re-implementation.
+1. **Predict** — real read-only P0–P3 audit (confirmed-from-code vs speculative)
+2. **Continuous testing** — you run tests/typecheck before predict, after every fix, and again before the ship report; failures feed the next fix; never trust an agent’s “green”
 
 ## Install
 
@@ -50,16 +51,16 @@ Or say things like:
 - “Driver, park the car safely”
 - “I drove today — you do the checks”
 
-## What it does
+## Loop
 
 ```text
 Park progress:
 - [ ] 1. Discover scope
 - [ ] 2. Ignore unrelated dirty WIP
-- [ ] 3. Baseline (tests + typecheck)
+- [ ] 3. Baseline (YOU run tests + typecheck)
 - [ ] 4. Predict P0–P3 (read-only)
 - [ ] 5. Fix confirmed P0/P1 only
-- [ ] 6. Retest + typecheck
+- [ ] 6. Continuous test loop (fail → fix → re-run)
 - [ ] 7. Exhaustive QA (read-only)
 - [ ] 8. Blunt report (fixed · leftovers · ship blockers)
 ```
@@ -68,7 +69,7 @@ Park progress:
 
 | Path | Purpose |
 |------|---------|
-| [`park-the-car-safely/SKILL.md`](./park-the-car-safely/SKILL.md) | Main skill |
+| [`park-the-car-safely/SKILL.md`](./park-the-car-safely/SKILL.md) | Main skill — predict methodology + continuous testing |
 | [`park-the-car-safely/notification-idempotency.md`](./park-the-car-safely/notification-idempotency.md) | Extra checklist for SMS / WhatsApp / email / in-app send paths |
 
 ## License
