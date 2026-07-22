@@ -2,10 +2,12 @@
 
 **User drove. You park.**
 
-A Cursor Agent Skill for the post-drive QA loop. The blood of it is not a checklist — it is:
+A Cursor Agent Skill for the post-drive QA loop — written as a full how-to, not a skinny checklist.
 
-1. **Predict** — real read-only P0–P3 audit (confirmed-from-code vs speculative)
-2. **Continuous testing** — you run tests/typecheck before predict, after every fix, and again before the ship report; failures feed the next fix; never trust an agent’s “green”
+The blood of it:
+
+1. **Predict** — how to run a real read-only P0–P3 audit (evidence, confirmed-from-code vs speculative, non-findings)
+2. **Continuous testing** — how to own the fail → fix → re-run loop; never trust an agent’s “green”
 
 ## Install
 
