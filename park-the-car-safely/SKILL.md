@@ -1,519 +1,496 @@
 ---
 name: park-the-car-safely
 description: >-
-  QA / safety check-loop after the user drove a feature themselves.
-  Discover scope, baseline tests+typecheck, severity-ranked predict (P0–P3),
-  surgical fix of confirmed issues only, continuous retest loop, exhaustive QA,
-  blunt ship report. Use when the user says "park the car safely",
-  "park my car safely", "driver, park the car safely", "do the checks",
-  "checking loop", or that they implemented something and want the chauffeur
-  QA pass — not a re-drive.
+  Relentless post-implementation QA and ship-readiness loop. Use when the user
+  says "park the car safely", "park my car", "do the checking loop", "I drove,
+  you park", or asks for an exhaustive safety pass after building a feature.
+  Establishes a persistent completion contract, maps the runtime surface,
+  baselines tests and typecheck, predicts failures across P0-P3, turns every
+  material prediction into a probe, fixes confirmed defects in severity waves,
+  continuously retests and re-predicts, independently judges completion, and
+  refuses to declare ship-ready without concrete evidence. This is a long-range
+  QA objective, not a redesign pass.
 ---
 
 # Park the car safely
 
-Someone already drove the feature. Your job is not to rebuild it prettier. Your job is to **park it**: find what can break, fix only what is confirmed and dangerous, prove the suite still holds, and tell the human the truth about ship readiness.
+The user already drove. You are the closer.
 
-The blood of this skill is two things that most agents fake:
+Do not admire the feature. Do not rewrite it to suit your taste. Do not run one
+happy path, see green, and hand back the keys. Your job is to attack the parked
+surface until its important claims either survive evidence or break in a way
+you can reproduce and repair.
 
-1. **Predict** — a real read-only audit. You read the parked code, name failure modes, rank them P0–P3, and separate what the code proves from what you are guessing about prod.
-2. **Continuous testing** — you personally run tests and typecheck before predict, after every fix batch, and again before you speak the ship report. If something fails, that failure becomes the next fix input. You never accept “tests passed” from another agent (or from yourself in a previous turn) without re-running.
+Be aggressive about uncertainty. Be conservative about edits.
 
-If you skip either of those, you are not parking. You are vibing.
+Every material prediction must end in one of these states:
 
----
+1. **Disproved by evidence**
+2. **Confirmed, fixed, and re-verified**
+3. **Confirmed and explicitly blocked**
+4. **Accepted as risk by the user**
 
-## When to load this skill
+“Probably fine,” “tests passed earlier,” and “the helper agent said green” are
+not states. They are evasions.
+## Prime directive
 
-Load it when the human (or the chat context) means:
+Keep working until the completion contract is proven or a genuine stop
+condition is reached. Do not end a turn merely because you completed a phase.
+The end of a phase means: update park state, select the next concrete action,
+and continue.
 
-- “Park the car safely” / “Park my car safely” / “Driver, park the car safely”
-- “I drove today — you do the checks / loop”
-- “Do the checking loop” / “safety pass after my drive”
-- Any phrasing that says: *the feature exists; now chauffeur the QA, don’t re-drive*
+If the environment provides persistent goals, todos, background jobs, or
+subagents, use them. If it does not, maintain the state block below in the
+conversation. The skill cannot create runtime persistence by itself; it directs
+continuation during the active invocation and preserves resumable state.
 
-Do **not** load this as an excuse to redesign the feature. If predict finds a real break, you may patch that break surgically. You may not rewrite the architecture “while you’re here.”
+## What this is — and what it is not
 
----
+This is:
 
-## Division of labor
+- a standing post-drive objective;
+- an evidence-producing audit;
+- an adversarial prediction and falsification loop;
+- a severity-ordered repair loop;
+- a final independent ship judge.
 
-| Role | Who | Allowed to do |
-|------|-----|----------------|
-| Drive | User or prior build agent | Invent the feature, large design choices |
-| Park (you) | QA chauffeur | Scope, baseline, predict, fix confirmed P0/P1, retest loop, exhaustive, blunt report |
+This is not:
 
-Hard rules for the chauffeur:
+- a redesign;
+- a refactor safari;
+- an excuse to clean unrelated dirty files;
+- a broad security audit unless the parked surface requires one;
+- permission to push, deploy, migrate, or mutate production without the user’s
+  authorization.
 
-- No push unless they explicitly ask.
-- No drive-by refactors, renames, “cleanup,” or formatting sweeps.
-- No expanding into adjacent dirty WIP unless they said “park everything.”
-- No claiming ship-ready when migrations, env, or cron are unverified on the target environment.
+The aggression points inward at weak reasoning and outward at failure modes.
+It never points sideways at unrelated code.
+## Non-negotiable rules
 
----
+1. **Write the boundary before testing.** No boundary means no park.
+2. **Run the baseline yourself.** Prior turns and helper reports do not count.
+3. **Predict before editing.** Read-only means read-only.
+4. **Probe predictions.** A list of worries is not an audit.
+5. **Fix evidence, not imagination.**
+6. **Retest after every fix wave.** Use the same commands as baseline.
+7. **Re-predict after fixes.** Repairs alter the risk surface.
+8. **Separate parked-surface readiness from whole-branch readiness.**
+9. **Never hide red.** Classify it as caused, pre-existing, environmental, or
+   unknown.
+10. **No push or deploy unless explicitly requested.**
+## Phase 0 — Arm the standing objective
 
-## The sequence you always run
+Before touching code, draft this completion contract:
 
-Track this openly in your working notes so you don’t skip steps under pressure:
+```text
+Park Completion Contract
+Outcome:
+  The named feature is safe on its supported paths and honest about unsupported
+  or externally unverified behavior.
 
+Verification:
+  Exact commands, runtime probes, artifacts, and environment checks that prove
+  the outcome.
+
+Constraints:
+  Behaviors that must not regress; unrelated WIP that must remain untouched;
+  no speculative refactors; no unauthorized external mutations.
+
+Boundaries:
+  NEW files, MOD files or hunks, runtime entrypoints, storage, integrations,
+  migrations, tests, and explicit DO NOT TOUCH paths.
+
+Stop when:
+  A destructive/product decision is required; definitive auth/quota/permission
+  blocks progress; a target environment cannot be inspected; or three distinct
+  reasonable attempts hit the same external blocker.
 ```
-Park progress:
-- [ ] 1. Discover scope
-- [ ] 2. Ignore unrelated dirty WIP
-- [ ] 3. Baseline (YOU run tests + typecheck) → record numbers
-- [ ] 4. Predict P0–P3 (read-only) → write the audit
-- [ ] 5. Fix confirmed P0/P1 only
-- [ ] 6. Continuous test loop (YOU re-run; fail → fix → re-run)
-- [ ] 7. Exhaustive QA (read-only)
-- [ ] 8. Blunt report (fixed · leftovers · ship blockers)
+Make the contract concrete. “Tests pass” is not enough. Name the tests. Name
+the flows. Name the target environment if deploy truth matters.
+
+Read [GOAL-LOOP.md](GOAL-LOOP.md) for the full standing-goal protocol,
+continuation judge, wait behavior, and completion audit.
+
+## Persistent park state
+
+Create and continuously update this state in todos or working notes:
+
+```text
+PARK STATE
+Objective:
+Contract:
+Phase:
+Boundary:
+Do not touch:
+Baseline:
+System map:
+Predictions: total / unprobed / confirmed / disproved / blocked
+Open P0:
+Open P1:
+Fix waves:
+Current verification:
+External unknowns:
+Next concrete action:
+Stop condition:
 ```
+Rules:
 
-Do them in order. Predicting before a baseline is how you invent ghost bugs. Fixing before predict is how you re-drive. Exhaustive QA before the test loop is green is theater.
+- Exactly one next action is active.
+- Update evidence after every meaningful command, code read, probe, or fix.
+- Never reset counts to make progress look cleaner.
+- A user correction preempts the loop immediately and rewrites the contract.
+- If context is compressed, reconstruct state from evidence before continuing.
 
----
+## Phase 1 — Draw the real boundary
 
-## 1. Discover scope — draw the boundary first
-
-Parking without a file list is how you “fix” the wrong feature.
-
-Start with git, then search:
+Start with repository truth:
 
 ```bash
 git status -sb
 git diff --stat
+git diff
 git log -5 --oneline
 ```
 
-If they named a feature (“pharmacy Rx gate”, “follow-up SMS”, “admin ship button”), search for those symbols and routes. Build an explicit list:
+Then trace the named feature. Build four lists:
 
-- **NEW** — files that exist because of this drive
-- **MOD** — files changed for this drive
-- **OUT OF SCOPE** — dirty or nearby files you will not touch
+- **NEW** — files introduced by the drive
+- **MOD** — changed files or exact changed hunks in mixed files
+- **RUNTIME SURFACE** — callers, APIs, jobs, storage, migrations, flags,
+  integrations, and UI paths that make the feature real
+- **DO NOT TOUCH** — unrelated dirty WIP and adjacent systems
 
-That NEW+MOD list is the **park boundary**. Every later prompt (predict, fix, exhaustive) should paste it. If a finding lives outside the boundary, it is leftover commentary unless it is a true ship blocker caused by the parked work (say so explicitly).
+Do not confuse `git diff` with runtime scope. A one-line caller change can
+activate a large existing payment, auth, or queue path. Conversely, a dirty
+file may contain one parked hunk and fifty unrelated hunks. Scope at hunk level
+when necessary.
 
-How to think while scoping:
+If the request is truly ambiguous and two boundaries would produce materially
+different edits, ask one focused question. Otherwise choose the narrowest
+coherent boundary and state it.
+## Phase 2 — Baseline before prediction
 
-- Prefer the smallest coherent surface that makes the feature real (API + caller + migration + UI that completes the path).
-- If the tree is a mess of two features, ask only if truly ambiguous. Otherwise pick the named one and put the rest on the DO NOT touch list.
-- Recent commits help when the working tree is noisy: `git log -5 --oneline` often shows what they thought they shipped.
-
-Write the boundary down before you run tests. Example:
-
-```text
-Park boundary:
-NEW: src/app/api/foo/route.ts, src/lib/foo/gate.ts
-MOD: src/components/FooActions.tsx, supabase/migrations/107_....sql
-DO NOT touch: src/lib/pharmacy-core/** (unrelated WIP)
-```
-
----
-
-## 2. Ignore unrelated dirty WIP — mixed trees are normal
-
-Real repos are dirty. Another feature half-landed next to yours is not an invitation.
-
-- Do not “improve” adjacent files to make the park feel complete.
-- Do not run formatter/linter autofix across the repo.
-- Do not merge, rebase, or push to clean the story.
-- Keep the DO NOT touch list in every fix prompt so a helper agent cannot wander.
-
-If they literally say “park everything” or “the whole branch,” expand the boundary and say so in the report. Otherwise stay narrow.
-
----
-
-## 3. Baseline — you run the suite before anyone predicts
-
-Baseline is how you stop false alarms. If the suite is already red, predict will drown in noise. If it is green, predict must explain how production can still die.
-
-### What to run
-
-Use what the project already uses. Do not invent a parallel test culture.
-
-Typical patterns:
-
-- Targeted unit tests for the parked libs: e.g. `npx tsx --test path/to/relevant.test.ts`
-- Package scripts: `npm test`, `pnpm test`, `npm run typecheck`, `npm run lint` when that is the house standard
-- Prefer the narrowest suite that still covers the parked surface, plus typecheck always
-
-### What to record
-
-Write the actual numbers into your notes and into the predict prompt:
+Use the project’s own test culture. Record exact commands and counts:
 
 ```text
-Baseline:
-- cmd: npx tsx --test src/lib/foo/*.test.ts → 47 pass / 0 fail
-- cmd: npm run typecheck → clean
+BASELINE LEDGER
+B1  <targeted tests>    → N pass / N fail
+B2  <integration/e2e>  → N pass / N fail
+B3  <lint>             → clean / findings
+B4  <typecheck>        → clean / findings
+B5  <build>            → clean / findings / not relevant
 ```
 
-Those numbers travel with you. After fixes you will re-run the **same** commands and compare.
-
-### If baseline is red on the parked surface
-
-Do not leap into a speculative predict essay. Either:
-
-1. the red is caused by the parked work → treat it as the first confirmed break and fix/retest before a full predict, or
-2. the red is pre-existing outside the boundary → note it, keep it out of your “already green” claim, and still predict the parked surface carefully
-
-Never invent a fake PASS matrix to look professional.
-
-### Client-only / zero unit tests
-
-Some drives are UI + browser API with no tests. You still park, but honestly:
-
-1. Run typecheck (and targeted lint if useful).
-2. Static-audit the hook/components yourself: feature detect, cleanup on unmount, append vs overwrite, stop-on-send, unsupported paths.
-3. Report by surface: main path green / secondary path yellow, with concrete edge bugs — not a fake N/N unit matrix.
-4. Still do a lightweight predict: what fails for a real user, what hydration/lint traps exist, what duplicate weaker implementations live nearby.
-5. Do not re-drive shared hooks “for consistency” unless they asked for that fix.
-
----
-
-## 4. Predict — the real audit (read-only, required)
-
-Predict is not a vibe check. It is a structured hunt for failure modes in the parked code. **No edits in this step.** If you catch yourself patching mid-predict, stop. Write the finding instead.
-
-You can predict in-session (read the files yourself) or spawn a read-only helper agent. Either way, the **output artifact** should look the same: severity-ranked, evidenced, tagged confirmed vs speculative.
-
-### How to actually do a predict
-
-1. Paste the park boundary and baseline numbers at the top of your working doc.
-2. List business rules you already know for this product (auth model, money soft-fail, seeds never get outreach, roles mutually exclusive, etc.). These kill false positives.
-3. Read every NEW/MOD file that sits on a runtime path — not just the pretty UI file. Follow the click/API/cron to the storage write and back.
-4. For each risky spot, ask: “What input or race makes this lie?” Prefer concrete traces over adjectives.
-5. Rank findings. Tag each one. Write non-findings for areas you checked and cleared.
-
-Good predict energy: “If `items` fails to parse, `orderRequiresPrescription` returns false, so paid Rx orders skip the review queue and ship unlocks.”
-
-Bad predict energy: “Maybe auth is wrong somewhere” with no path.
-
-### Severity ladder (use judgment, not vibes)
-
-| Sev | Meaning | Typical examples | Fix during park? |
-|-----|---------|------------------|------------------|
-| **P0** | Ship blocker or safety lie | Wrong money; auth/tenancy hole; data loss; fail-open safety gate (Rx/permission/payment); “secure” path that defaults false when data missing | Yes — fix or hard-block ship |
-| **P1** | Confirmed break with a clear repro shape | Stale UI after server mutation (no refresh); claim-before-send mute; migration missing → soft-fail oversell; double SMS; late callback resurrects cancelled order | Yes — surgical |
-| **P2** | Real, non-blocking, or intentional soft-fail with ops note | Edge admin path; hold not released until bill; copy slightly misleading | Usually leftover |
-| **P3** | Hygiene | Missing unit tests, naming, dead code, polish | No |
-
-When torn between P0 and P1: if a normal successful user path can bypass a safety gate or lose money/data, it is P0.
-
-### Confirmed-from-code vs speculative
-
-Every finding needs a tag:
-
-- **confirmed-from-code** — you can cite the file/function and state the failure mode without guessing about prod. Fix candidates live here (P0/P1 only).
-- **speculative** — depends on remote state you did not verify (migration not applied on Vercel, cron secret missing in that env, provider keys present locally but not in deploy). Put these on the ship checklist. Do not “fix” them by rewriting code you cannot validate.
-
-Example of honest tagging:
-
-- “Fail-open Rx when parse returns []” → confirmed-from-code (the helper returns false).
-- “Migration 107 might be missing in prod” → speculative until someone checks the remote DB — still a ship checklist item if the code soft-fails on insert errors.
-
-### Focus lenses (walk these when relevant)
-
-You do not need every lens every time. You do need to consciously skip a lens, not forget it.
-
-- **Races & idempotency** — mark-after-send vs claim-before-send; TTL cron vs late payment callback; double fan-out from cron + sync.
-- **Auth & tenancy** — can clinic A act on clinic B’s row? Can a patient hit an admin action? Is the check only in UI?
-- **Migrations before code** — new columns, CHECKs, enums. Does TypeScript allow a value the DB will reject (or the reverse)?
-- **Fail-open gates** — missing flag → treat as safe? Unknown → allow? That pattern is how Rx/payment/permission bugs ship.
-- **Cron & duration** — batch claimed then killed mid-run by `maxDuration`.
-- **Join shape bugs** — Supabase/PostgREST returning object `|` array; phone silently undefined; “works in the happy fixture.”
-- **Copy honesty** — UI says “delivered” / “verified” / “reserved” when the code only attempted or soft-failed.
-- **Money & holds** — initiate vs callback consistency; free path vs paid path asymmetry; holds that never release.
-
-When parking notification / multi-channel sends, also load [notification-idempotency.md](notification-idempotency.md).
-
-### Predict output shape (always produce this)
-
-```markdown
-## Park predict — <feature>
-
-**Scope:** NEW … / MOD …
-**Baseline:** <cmd> → N pass; typecheck <clean|fail>
-**Verdict:** <one honest line>
-
-### P0
-1. **<title>** — confirmed-from-code
-   Evidence: `path:symbol` …
-   Failure mode: …
-
-### P1
-…
-
-### P2
-…
-
-### P3
-…
-
-### Explicit non-findings
-| Area | Result |
-|------|--------|
-| Auth on admin actions | requireX on page + server action — ok |
-| Clinic scoping | clinic_id check before mutate — ok |
-```
-
-Non-findings matter. They prove you looked. Without them, a short “no P0” report is indistinguishable from laziness.
-
-### Predict prompt template (for a helper agent)
-
-Write long prompts to a temp markdown file in the project, then pass them with `$(cat …)`. Do not trust giant nested shell heredocs with apostrophes.
-
-```markdown
-# Park predict (READ-ONLY)
-
-Do NOT edit files. Output severity-ranked P0–P3 only.
-
-## Scope (NEW / MOD)
-- …
-
-## DO NOT touch
-- …
-
-## Baseline (already run — trust these numbers)
-- tests: …
-- typecheck: …
-
-## Business rules for this product
-- …
-
-## Focus
-- races / idempotency
-- auth + tenancy
-- migrations-before-code
-- fail-open safety gates
-- cron TTL vs late callbacks
-- double fan-out
-- copy honesty vs actual behavior
-
-## Required output
-- P0–P3 with confirmed-from-code vs speculative on every item
-- concrete failure modes (not adjectives)
-- explicit non-findings table for areas checked and cleared
-```
-
-Optional CLI second pair of eyes when `agent` is on PATH:
-
-```bash
-agent --print --trust --mode ask --model <strong-coding-model> \
-  --workspace <app-root> \
-  "$(cat .park-predict-prompt.md)"
-```
-
-If the agent hangs with empty output for ~2–3 minutes, kill it and retry with a faster high-tier model. Delete the temp prompt when the pass finishes. Prefer ask/plan/read-only modes for predict — never yolo for predict.
-
-You may also do the entire predict yourself in-session. The standard is the artifact quality, not which process typed it.
-
----
-
-## 5. Fix — only confirmed P0/P1, surgically
-
-After predict, resist the urge to “clean the list.” Most P2/P3 items are leftovers for the report.
-
-### What you may fix
-
-- P0/P1
-- tagged **confirmed-from-code**
-- with a concrete failure mode and a concrete direction
-
-### What you must not fix (during park)
-
-- Speculative remote/env issues (put on ship checklist)
-- P2/P3 polish
-- Unrelated dirty WIP
-- “While we’re here” refactors
-- Rewriting a stack or provider without a product ask (leave ops notes as comments if that is the house style)
-
-### How to fix well
-
-1. Batch only the confirmed items you will actually close in this park.
-2. For each item, state the smallest patch that closes the failure mode (e.g. “fail closed when Rx flag unknown”, “call `router.refresh()` after successful action”, “release claim when provider did not settle”).
-3. Paste DO NOT touch into the fix prompt every time.
-4. After the edit pass, **you** run the continuous test loop (next section). Do not proceed to exhaustive QA on faith.
-
-### Fix prompt template
-
-```markdown
-# Park fix
-
-Address ONLY these confirmed issues:
-
-1. <title> — <concrete direction pointing at file/symbol>
-2. …
-
-DO NOT touch:
-- …
-
-Constraints:
-- Surgical only. No refactors. No new features.
-- Do not re-drive the feature.
-- After edits, run: <same baseline test commands> + typecheck
-- Report: what you fixed + leftover risks
-```
-
-If using CLI: `--print --trust --yolo` is appropriate for fix, still with a tight prompt. Verify on disk with `git diff` afterward — agents sometimes claim writes they did not make.
-
----
-
-## 6. Continuous testing loop — you own the green
-
-This is not “run tests once at the end.” This is the heartbeat of parking.
-
-```
-baseline (step 3) ── records commands + counts
-        │
-        ▼
-     predict
-        │
-        ▼
-   fix batch (confirmed P0/P1)
-        │
-        ▼
- YOU re-run the SAME test cmds + typecheck
-        │
-        ├─ fail → failures become the next fix input (still in boundary)
-        │         loop again
-        │
-        └─ pass → proceed to exhaustive QA
-```
-
-### Rules that make the loop real
-
-- **Same commands.** If baseline was `npx tsx --test src/lib/foo/*.test.ts`, do not silently switch to a different glob to make life easier unless you document why.
-- **You run them.** Helper agents may run tests; you still re-run (or carefully witness the raw output) before you change park state.
-- **Record every iteration.** “After fix 1: 47 pass, typecheck clean.” “After fix 2: 2 fail in gate.test.ts — feeding back.”
-- **Ignore self-reports.** “Done, all tests passed” from an agent is a rumor until your terminal says so.
-- **Verify writes.** If an agent says it created or patched files, `git diff` / read the file. Hallucinated writes are common enough to assume.
-- **Typecheck is in the loop.** A green unit suite with a red typecheck is not parked.
-- **Boundary holds under failure.** If your fix breaks tests outside the park boundary, stop and report instead of expanding into a second feature unless the human expands scope.
-
-### Stop conditions
-
-Stop looping when either:
-
-1. **Green** — parked surface tests + typecheck match or beat baseline, and confirmed P0/P1 from predict are closed or consciously deferred with reason; or
-2. **Blocked** — you hit a ship blocker you cannot close in code alone (migration not applied remotely, missing provider creds in target env, product decision required). Write it as a ship blocker. Do not fake green.
-
-Do not infinite-loop on P3 nits. Do not widen into a rewrite because the third retest annoyed you.
-
----
-
-## 7. Exhaustive QA — read-only truth pass
-
-Only after the test loop is green or honestly blocked.
-
-Exhaustive QA is a second read-only pass with a different job than predict:
-
-- Predict asks: “What could break?”
-- Exhaustive asks: “Given what we fixed and what we left, can we ship this surface?”
-
-Rules:
-
-- **READ-ONLY.** No sneaky fixes. If you find a new P0, say so and optionally start another tiny fix+retest cycle — but do not silently edit during the QA writeup.
-- Return **PASS** or **FAIL** on the parked surface.
-- List leftover **P0/P1 only** (open confirmed issues).
-- Produce a **ship checklist** aimed at ops reality, not code poetry:
-  - migrations applied on the environment that will run the code?
-  - env vars present **and** valid there (local `.env` ≠ deploy)?
-  - cron routes still pointed at the right handlers?
-  - any claim of “delivered” / “synced” that is actually stub/401?
-- Suppress dual-role / speculative noise that business rules already kill.
-
-### Exhaustive prompt template
-
-```markdown
-# Exhaustive QA (READ-ONLY)
-
-NO edits.
-
-## Parked files
-- …
-
-## Retest numbers (final)
-- …
-
-## Predict leftovers still open
-- …
-
-Return:
-1. PASS or FAIL for the parked surface
-2. leftover P0/P1 only
-3. ship checklist (migrations, env, cron, ops honesty)
-```
-
----
-
-## 8. Blunt report — short, true, ship-shaped
-
-Talk to the human like a chauffeur handing back the keys, not like a consultancy deck.
-
-Include:
+Minimum:
+
+- the narrowest meaningful tests for the parked surface;
+- typecheck, always;
+- targeted lint when the project uses it;
+- one runtime or browser/API probe when static tests cannot prove the user
+  journey.
+
+If baseline is red:
+
+1. determine whether each failure is parked, pre-existing, environmental, or
+   unknown;
+2. turn parked failures into confirmed prediction/probe records;
+3. do not repair unrelated red unless the user expands scope;
+4. do not edit until the read-only predict phase is complete;
+5. do not call the repository green.
+
+A test that never reaches the feature is not coverage. A stale locator, missing
+fixture, dead server, or wrong port must be classified honestly.
+## Phase 3 — Model the system before attacking it
+
+Write the feature as a causal map:
 
 ```text
-Parked: <feature>
-Boundary: <one line>
-Baseline → final: <N pass> / typecheck <ok|fail>
-Fixed: <bullets of confirmed P0/P1 closed>
-Leftovers: <P2/P3 or deferred items worth knowing>
-Ship blockers: <migrations/env/cron/product — or none>
+entry → validation → authorization → domain logic → persistence
+      → external side effect → callback/retry → user-visible state → recovery
 ```
 
-No essay. No heroic narrative of every tool call. No push unless they asked. If you blocked ship, say the blocker in plain language (“107 not verified on prod; holds soft-fail closed → oversell risk”).
+For every node, record:
 
----
+- inputs and trust boundary;
+- authoritative source of truth;
+- state transition;
+- failure behavior;
+- retry/idempotency behavior;
+- observable claim made to the user or operator.
 
-## Optional Cursor CLI usage
+Extract invariants. Examples:
 
-When the `agent` binary is available (often `~/.local/bin/agent`):
+- a patient cannot select a doctor from another clinic;
+- amount at payment callback equals server-priced amount;
+- unknown permission fails closed;
+- the same webhook cannot create two appointments;
+- “delivered” requires provider acceptance, not merely an attempted request.
 
-| Pass | Suggested flags | Notes |
-|------|-----------------|-------|
-| Predict / exhaustive | `--print --trust --mode ask` | Read-only. Strong model first. |
-| Fix | `--print --trust --yolo` | Tight prompt + DO NOT touch. |
+Prediction without invariants becomes random bug brainstorming. Invariants give
+you something precise to try to break.
 
-You can park entirely in-session with no CLI. Same sequence. Same loop. Same standards.
+## Phase 4 — Predict broadly, then deeply
 
-Always:
+This phase is read-only. No “tiny fix while I am here.”
 
-- Put long prompts in a temp `.md` and `$(cat file)`
-- Delete temp prompt files after the pass
-- Prefer killing a hung empty agent over waiting forever
-- Prefer verifying disk state over trusting the agent’s closing paragraph
+Run two passes:
 
----
+### Breadth pass
 
-## Domain checklists
+Walk every applicable lens in [PREDICT-PLAYBOOK.md](PREDICT-PLAYBOOK.md) and
+[DOMAIN-LENSES.md](DOMAIN-LENSES.md). Generate concrete failure hypotheses
+across:
 
-When the parked work sends SMS / WhatsApp / email / in-app follow-ups, load and apply [notification-idempotency.md](notification-idempotency.md) during predict and ship checklist. Those patterns (claim-before-send, seed filters, DLT, cron duration) are recurring park killers.
+- normal and alternate user journeys;
+- auth, roles, and tenancy;
+- data shape, migrations, and deploy order;
+- money, inventory, quotas, or irreversible state;
+- races, retries, idempotency, callbacks, and cancellation;
+- external providers, timeout, partial success, and stale data;
+- UI hydration, navigation, back behavior, and state restoration;
+- observability, copy honesty, and operator recovery;
+- compatibility, rollout, rollback, and dirty-world behavior.
 
----
+### Depth pass
 
-## Anti-patterns (if you do these, you failed the park)
+For each high-risk invariant, trace from entrypoint to final effect. Ask:
 
-- Skipping predict because the diff “looks fine”
-- One baseline at the start and no retest after fixes
-- Trusting “done” / “tests passed” without your own run
-- Re-driving the feature to make it cleaner
-- Fixing unrelated dirty files to feel productive
-- Claiming ship-ready when migrations or env are unverified on the target
-- Fixing speculative P2/P3 noise so the list looks empty
-- Editing during a read-only predict/exhaustive pass
-- Pushing without an explicit ask
-- Inventing a fake PASS/FAIL matrix for a client-only surface with zero tests
+- What input makes this lie?
+- What timing makes this duplicate?
+- What missing row makes this fail open?
+- What stale state makes this overwrite newer truth?
+- What partial success leaves the system contradictory?
+- What deploy order makes code and schema disagree?
+- What would a normal user do that the happy-path test did not?
 
----
+Create prediction records, not prose fog:
 
-## Quick self-check before you say “parked”
+```text
+PRED-###
+Severity:
+Claim:
+Evidence path:
+Trigger/precondition:
+Expected failure:
+Blast radius:
+Probe:
+Status: unprobed
+```
 
-Ask yourself out loud:
+Tag every item:
 
-1. Do I have a written NEW/MOD boundary and a DO NOT touch list?
-2. Did I record baseline commands and counts?
-3. Did I produce a P0–P3 predict with confirmed vs speculative and non-findings?
-4. Did I only patch confirmed P0/P1?
-5. Did I personally re-run the same tests + typecheck after fixes, looping on failures?
-6. Did I give a PASS/FAIL + ship blockers without lying about prod?
+- **confirmed-from-code**
+- **supported hypothesis**
+- **speculative external**
 
-If any answer is no, you are not done.
+Material means P0–P2 risk affecting a supported user/operator path, invariant,
+deployability, data, money, trust boundary, side effect, or recovery path.
+Rank P0–P3, but do not use severity to avoid probing. Severity controls repair
+order, not whether the thought deserves evidence.
+
+## Phase 5 — Turn predictions into probes
+
+Now attack the predictions. Read [PROBE-AND-LOOP.md](PROBE-AND-LOOP.md).
+
+For every material prediction:
+
+1. choose the cheapest probe that can actually falsify it;
+2. write expected pass and fail evidence before running;
+3. run the probe;
+4. capture raw evidence;
+5. classify the result.
+
+Probe order usually moves from cheap to expensive:
+
+1. static trace / schema comparison;
+2. focused unit test;
+3. integration or API probe;
+4. browser/user-journey exercise;
+5. concurrency, retry, or fault-injection probe;
+6. target-environment verification.
+
+Do not write a test that merely repeats the implementation. Test the invariant.
+Do not call a prediction disproved because the setup failed. That is
+**inconclusive** and remains open.
+
+Material predictions may not disappear. They must be disproved, confirmed,
+blocked, or accepted by the user.
+
+## Phase 6 — Repair in severity waves
+
+Fix only after prediction and probing produce evidence.
+
+Repair order:
+
+1. **Wave A — P0:** safety, money, auth/tenancy, data loss, fail-open gates.
+2. **Wave B — P1:** normal-path breaks, races, duplicate side effects, stale or
+   unrecoverable state.
+3. **Wave C — P2:** every confirmed material P2 inside the supported parked
+   surface must be fixed, blocked, or explicitly accepted by the user.
+4. **P3:** report by default. Do not spend the park polishing.
+
+For each wave:
+
+- state the exact failure and smallest closing patch;
+- write or update a regression probe first when practical;
+- touch only causal lines;
+- inspect the diff immediately;
+- run the same baseline commands;
+- run the prediction-specific probe;
+- re-run dependent-path probes.
+
+If a fix changes a shared invariant, reopen every prediction that depended on
+the old behavior.
+
+## Phase 7 — Continuous retest and re-predict
+
+The loop is:
+
+```text
+predict → probe → confirm → fix → baseline retest → targeted retest
+       → dependent-path retest → re-predict → next open prediction
+```
+
+Do not batch unrelated fixes merely to reduce tool calls. Do not continue after
+a red retest as if it were bookkeeping. The failure becomes the next active
+input.
+
+After each wave, record:
+
+```text
+ITERATION N
+Predictions closed:
+Patch:
+Baseline delta:
+Targeted evidence:
+New regressions:
+Predictions reopened:
+Next action:
+```
+
+Long-running CI, builds, deploys, or migrations should be backgrounded and
+waited on with a real completion signal. Do not burn turns saying “still
+running.” Do not abandon them and declare completion either.
+
+## Phase 8 — Adversarial completion judge
+
+When you think the work is done, switch back to read-only and try to reject your
+own completion claim.
+
+The judge asks:
+
+1. Is every contract requirement proved by current evidence?
+2. Is every supported user path exercised or explicitly out of scope?
+3. Does any P0/P1 remain open, inconclusive, or hidden as “external”?
+4. Did fixes regress an adjacent path or violate a constraint?
+5. Are target-environment claims actually verified there?
+6. Is branch-wide red being misrepresented as parked-surface green?
+7. Did any prediction vanish without disposition?
+
+Verdict:
+
+- **WAIT** — a real background verification barrier is active.
+- **PAUSED** — the user paused or the iteration budget was reached with state
+  preserved.
+- **CONTINUE** — evidence missing, prediction open, regression present.
+- **BLOCKED** — definitive external/user decision prevents progress.
+- **DONE** — contract proved; material P0–P2 disproved, fixed-verified, or
+  user-accepted; final verification is current.
+
+If independent read-only review is available, use it. Give it the contract,
+boundary, prediction ledger, fixes, and raw final test results. Do not ask it
+for a generic review.
+
+## Phase 9 — Final verification and handoff
+
+Immediately before reporting:
+
+- run the same core tests and typecheck again;
+- verify the final diff and file status;
+- verify claimed artifacts exist;
+- distinguish parked-surface PASS/FAIL from repository PASS/FAIL;
+- list external unknowns without pretending they are verified.
+
+Use [REPORT-TEMPLATES.md](REPORT-TEMPLATES.md). The final report is short
+because the evidence ledger did the long work.
+
+Minimum handoff:
+
+```text
+Parked:
+Boundary:
+Contract verdict:
+Baseline → final:
+Predictions: total / disproved / fixed / blocked / accepted
+Fixed:
+Open P0/P1:
+Leftovers:
+Ship blockers:
+External verification:
+Commit/push/deploy status:
+```
+
+## Severity authority
+
+- **P0:** normal or plausible path can lose money/data, cross trust boundaries,
+  bypass a safety gate, or create irreversible harm. Fix or block ship.
+- **P1:** confirmed substantial break, race, duplicate side effect, or
+  unrecoverable operator/user failure. Fix before declaring parked.
+- **P2:** real but bounded issue with a viable workaround or uncommon trigger.
+  Fix, block, or obtain explicit user acceptance under Wave C.
+- **P3:** hygiene or polish. Record; do not derail the safety loop.
+
+When uncertain between severities, reason from blast radius and reversibility,
+not emotional language.
+## Honest blocking
+
+Hard is not blocked. Slow is not blocked. A failing first attempt is not
+blocked.
+
+Use BLOCKED only when:
+
+- the next action is a user-owned destructive or product decision;
+- permissions, authentication, quota, or external state definitively deny the
+  required check;
+- target-environment truth cannot be accessed;
+- three materially different reasonable attempts reach the same external
+  barrier.
+
+Record attempts, evidence, owner, and exact unblock condition.
+
+## Domain playbooks
+
+- Exhaustive prediction method: [PREDICT-PLAYBOOK.md](PREDICT-PLAYBOOK.md)
+- Prediction falsification and continuous repair:
+  [PROBE-AND-LOOP.md](PROBE-AND-LOOP.md)
+- Security, data, money, distributed, UI, integration, and ops lenses:
+  [DOMAIN-LENSES.md](DOMAIN-LENSES.md)
+- Persistent goal state and conservative completion judge:
+  [GOAL-LOOP.md](GOAL-LOOP.md)
+- Audit and handoff artifacts: [REPORT-TEMPLATES.md](REPORT-TEMPLATES.md)
+- Notification-specific idempotency:
+  [notification-idempotency.md](notification-idempotency.md)
+
+Load only the references relevant to the parked surface, except
+PREDICT-PLAYBOOK.md and PROBE-AND-LOOP.md, which are mandatory for every
+non-trivial park.
+
+## Automatic failure conditions
+
+You failed the park if you:
+
+- skipped the completion contract;
+- never wrote the boundary;
+- predicted only after editing;
+- listed risks but did not probe them;
+- trusted another agent’s test claim without raw evidence;
+- changed the test command to manufacture green;
+- fixed speculative noise while a confirmed P1 remained open;
+- called an inconclusive probe a pass;
+- forgot deploy order or target-environment truth;
+- stopped after the happy path;
+- hid whole-branch red behind “feature tests pass”;
+- pushed, deployed, migrated, or messaged externally without authorization;
+- ended with “looks good” instead of a verdict backed by evidence.
+
+No green by omission. No safety by adjective. Park the actual car.
