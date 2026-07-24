@@ -123,6 +123,7 @@ Phase:
 Boundary:
 Do not touch:
 Baseline:
+Evidence fingerprint:
 System map:
 Predictions: total / unprobed / confirmed / disproved / blocked
 Open P0:
@@ -149,8 +150,12 @@ Start with repository truth:
 git status -sb
 git diff --stat
 git diff
+git diff --cached
+git ls-files --others --exclude-standard
 git log -5 --oneline
 ```
+
+For branch work, also inspect merge-base and committed branch diff.
 
 Then trace the named feature. Build four lists:
 
@@ -184,7 +189,8 @@ B5  <build>            → clean / findings / not relevant
 Minimum:
 
 - the narrowest meaningful tests for the parked surface;
-- typecheck, always;
+- the project’s authoritative compile/type/static check; record `N/A` with a
+  reason only when none exists;
 - targeted lint when the project uses it;
 - one runtime or browser/API probe when static tests cannot prove the user
   journey.
@@ -329,6 +335,9 @@ Repair order:
    surface must be fixed, blocked, or explicitly accepted by the user.
 4. **P3:** report by default. Do not spend the park polishing.
 
+If the user accepts an open P0/P1, stop with **STOPPED — USER ACCEPTED MATERIAL
+RISK**. Never convert that decision into DONE or ship-ready.
+
 For each wave:
 
 - state the exact failure and smallest closing patch;
@@ -371,6 +380,8 @@ Next action:
 Long-running CI, builds, deploys, or migrations should be backgrounded and
 waited on with a real completion signal. Do not burn turns saying “still
 running.” Do not abandon them and declare completion either.
+Deploys, migrations, payments, messages, and production mutations still require
+explicit authorization before they are started.
 
 ## Phase 8 — Adversarial completion judge
 
@@ -390,12 +401,12 @@ The judge asks:
 Verdict:
 
 - **WAIT** — a real background verification barrier is active.
-- **PAUSED** — the user paused or the iteration budget was reached with state
-  preserved.
+- **PAUSED** — user/platform-required pause or no new tactic; state preserved.
 - **CONTINUE** — evidence missing, prediction open, regression present.
 - **BLOCKED** — definitive external/user decision prevents progress.
-- **DONE** — contract proved; material P0–P2 disproved, fixed-verified, or
-  user-accepted; final verification is current.
+- **STOPPED** — the user accepted open P0/P1 risk; explicitly not ship-ready.
+- **DONE** — contract proved; P0/P1 disproved or fixed-verified; P2 disproved,
+  fixed-verified, or user-accepted; final verification is current.
 
 If independent read-only review is available, use it. Give it the contract,
 boundary, prediction ledger, fixes, and raw final test results. Do not ask it
@@ -406,8 +417,11 @@ for a generic review.
 Immediately before reporting:
 
 - run the same core tests and typecheck again;
+- bind evidence to current HEAD, working-tree status, environment, and command;
 - verify the final diff and file status;
 - verify claimed artifacts exist;
+- reject weakened/skipped assertions, debug code, temp files, secrets,
+  dependency/lockfile drift, generated debris, and unrelated formatting;
 - distinguish parked-surface PASS/FAIL from repository PASS/FAIL;
 - list external unknowns without pretending they are verified.
 
@@ -430,23 +444,9 @@ External verification:
 Commit/push/deploy status:
 ```
 
-## Severity authority
-
-- **P0:** normal or plausible path can lose money/data, cross trust boundaries,
-  bypass a safety gate, or create irreversible harm. Fix or block ship.
-- **P1:** confirmed substantial break, race, duplicate side effect, or
-  unrecoverable operator/user failure. Fix before declaring parked.
-- **P2:** real but bounded issue with a viable workaround or uncommon trigger.
-  Fix, block, or obtain explicit user acceptance under Wave C.
-- **P3:** hygiene or polish. Record; do not derail the safety loop.
-
-When uncertain between severities, reason from blast radius and reversibility,
-not emotional language.
 ## Honest blocking
-
 Hard is not blocked. Slow is not blocked. A failing first attempt is not
 blocked.
-
 Use BLOCKED only when:
 
 - the next action is a user-owned destructive or product decision;
@@ -459,7 +459,6 @@ Use BLOCKED only when:
 Record attempts, evidence, owner, and exact unblock condition.
 
 ## Domain playbooks
-
 - Exhaustive prediction method: [PREDICT-PLAYBOOK.md](PREDICT-PLAYBOOK.md)
 - Prediction falsification and continuous repair:
   [PROBE-AND-LOOP.md](PROBE-AND-LOOP.md)
@@ -476,9 +475,7 @@ PREDICT-PLAYBOOK.md and PROBE-AND-LOOP.md, which are mandatory for every
 non-trivial park.
 
 ## Automatic failure conditions
-
 You failed the park if you:
-
 - skipped the completion contract;
 - never wrote the boundary;
 - predicted only after editing;

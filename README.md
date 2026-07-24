@@ -45,7 +45,7 @@ pretend a markdown skill can install Hermes runtime persistence.
 
 ## Install
 
-### Cursor remote rule
+### Cursor remote rule (when GitHub skill import is available)
 
 1. Open **Cursor Settings → Rules**
 2. Choose **Add Rule → Remote Rule (GitHub)**
@@ -98,7 +98,10 @@ The skill does not stop at “tests pass.” It stops at one of:
 - **DONE** — completion contract proved with current evidence;
 - **BLOCKED** — definitive external/user-owned stop condition with attempts and
   exact resume point;
-- **PAUSED** — iteration budget reached with state preserved.
+- **STOPPED** — the user accepted open P0/P1 risk; never presented as
+  ship-ready;
+- **PAUSED** — user/platform-required pause or no new tactic, with state
+  preserved.
 
 Anything else means continue.
 

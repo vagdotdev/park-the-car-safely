@@ -61,6 +61,7 @@ B3 | ... | browser | fail | 7/8 | stale fixture
 
 Environment:
 - cwd:
+- HEAD / working-tree fingerprint:
 - runtime/version:
 - server/base URL:
 - relevant flags:
@@ -268,7 +269,7 @@ States:
 ...
 
 Return:
-1. WAIT, PAUSED, CONTINUE, BLOCKED, or DONE
+1. WAIT, PAUSED, CONTINUE, BLOCKED, STOPPED, or DONE
 2. Missing proof
 3. Open P0/P1
 4. Constraint violations
@@ -302,6 +303,7 @@ Parked: <feature>
 Boundary: <one line>
 Verdict: parked surface PASS/FAIL; repository PASS/FAIL
 Baseline → final: <tests/typecheck/build/browser>
+Evidence freshness: <HEAD / working tree / environment>
 Predictions: <total / disproved / fixed / blocked / accepted>
 Fixed:
 - ...
@@ -323,5 +325,6 @@ Final tone:
 - state blockers without padding;
 - distinguish code proof from target-environment proof;
 - do not narrate every tool call;
+- accepted P0/P1 must be reported as STOPPED and not ship-ready;
 - do not say “ship-ready” if repository checks, migrations, env, cron, provider,
   or product decisions remain unverified.

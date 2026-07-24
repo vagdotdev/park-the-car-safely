@@ -70,8 +70,8 @@ Use native goal state if available. Otherwise keep:
 
 ```text
 PARK GOAL
-Lifecycle: active | waiting | paused | blocked | done
-Last judge verdict: WAIT | PAUSED | CONTINUE | BLOCKED | DONE
+Lifecycle: active | waiting | paused | blocked | stopped | done
+Last judge verdict: WAIT | PAUSED | CONTINUE | BLOCKED | STOPPED | DONE
 Turn/iteration:
 Outcome:
 Verification:
@@ -136,7 +136,7 @@ After each major phase and before final output, decide:
 
 ```json
 {
-  "verdict": "WAIT | PAUSED | CONTINUE | BLOCKED | DONE",
+  "verdict": "WAIT | PAUSED | CONTINUE | BLOCKED | STOPPED | DONE",
   "reason": "one concrete evidence-based sentence",
   "missing_proof": ["..."],
   "next_action": "..."
@@ -149,6 +149,7 @@ Judging rules:
 - a violated constraint forces `continue` unless the user accepts it;
 - an unprobed material prediction forces `continue`;
 - an open P0/P1 forces `continue` or `blocked`;
+- user acceptance of open P0/P1 forces `STOPPED`, never `DONE`;
 - “I implemented it” is not proof;
 - “all tests pass” without command output is not proof;
 - parked-surface green cannot erase whole-branch red;
@@ -164,15 +165,16 @@ completion. A finite iteration budget prevents endless spinning.
 Use a soft budget of 20 meaningful iterations by default. An iteration is a
 predict/probe/fix/retest unit, not every tool call.
 
-At the budget:
+At the budget checkpoint:
 
-1. do not manufacture completion;
-2. summarize evidence and open predictions;
-3. pause with the exact next action;
-4. ask the user whether to resume if meaningful work remains.
+1. summarize evidence, progress, repeated failures, and open predictions;
+2. select the exact next action;
+3. if safe concrete work remains and the platform can continue, start a fresh
+   measured tranche and keep going;
+4. use `PAUSED` only when the user/platform requires it or no new tactic remains.
 
-Resetting the budget is allowed when the user resumes or materially expands the
-contract. It is not permission to repeat failed tactics.
+The checkpoint prevents runaway repetition. It is not a quality deadline or an
+automatic excuse to stop.
 
 ## Waiting correctly
 
@@ -274,5 +276,5 @@ Mark each:
 - `inconclusive`
 - `accepted-risk`
 
-Only `proved` and user-authorized `accepted-risk` may remain at completion.
-Anything else means continue or blocked.
+Only `proved` and user-authorized P2 `accepted-risk` may remain at DONE.
+Accepted P0/P1 means STOPPED; anything else means continue or blocked.

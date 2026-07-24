@@ -188,12 +188,15 @@ Record:
 - command;
 - working directory;
 - environment overrides;
+- HEAD and working-tree fingerprint;
 - pass/fail counts;
 - duration when useful;
 - failure ownership.
 
 After repair, rerun the same command. Additional checks may be added; baseline
 checks may not be quietly removed or weakened.
+
+Any relevant mutation invalidates older green evidence for the affected surface.
 
 If infrastructure requires a corrected invocation (wrong port, missing reuse
 flag), record both the failed setup attempt and the corrected canonical command.
@@ -216,6 +219,7 @@ Ask for a user decision when multiple product-correct behaviors exist.
 
 Fix one causal cluster at a time. Add fail-closed behavior where safety is
 unknown. Verify auth/tenancy, money/data invariants, and rollback/recovery.
+User acceptance stops the park as not ship-ready; it does not close the P0.
 
 After each P0 patch:
 
@@ -229,6 +233,7 @@ After each P0 patch:
 
 Group only defects sharing a root cause. Do not mix unrelated UI, retry, and
 schema fixes into one opaque batch.
+User acceptance stops the park as not ship-ready; it does not produce DONE.
 
 After each batch:
 
@@ -389,8 +394,11 @@ Every contract requirement and open high-risk prediction must appear.
 The loop may exit only when:
 
 - frozen baseline checks are rerun and classified;
-- all material P0–P2 predictions are `disproved`, `fixed-verified`,
-  `blocked-external`, or user-accepted;
+- all P0/P1 predictions are `disproved`, `fixed-verified`, or
+  `blocked-external`;
+- P2 predictions are `disproved`, `fixed-verified`, `blocked-external`, or
+  user-accepted;
 - no material prediction is silently unprobed;
 - fixes received delta predict and blast-radius retest;
-- final proof matrix supports the completion judge.
+- final proof matrix is newer than the latest relevant mutation and supports
+  the completion judge.
