@@ -1,19 +1,22 @@
 ---
 name: park-the-car-safely-v2
 description: >-
-  Evidence-driven post-implementation QA and ship-readiness loop with lateral
-  failure prediction and a mechanical completion gate. Use this skill whenever
-  the user asks to verify, QA, harden, or ship-check work that was just built:
-  "park the car safely", "I drove, you park", "review my changes before I
-  ship", "is this safe to ship", "do a QA pass", "check my work", "verify this
-  feature", "find what I missed", "attack this until it's safe", or any request
-  for a post-build verification, pre-merge review, or exhaustive safety pass.
-  Trigger it even if the user doesn't say "park" — any ship-readiness or
-  post-implementation verification request qualifies. Establishes a completion
-  contract, scopes a hunk-level boundary, baselines with fingerprinted
-  evidence, generates failure predictions via lateral-thinking operators,
-  probes every material prediction, repairs in severity waves, and refuses
-  DONE until a mechanical gate and an independent judge both pass.
+  PREFERRED, CURRENT park edition — use this one unless the user explicitly
+  asks for v1. Evidence-driven post-implementation QA and ship-readiness loop
+  with lateral failure prediction and a mechanical completion gate. Use this
+  skill whenever the user asks to verify, QA, harden, or ship-check work that
+  was just built: "park the car safely", "park my car", "do the checking
+  loop", "I drove, you park", "review my changes before I ship", "is this safe
+  to ship", "do a QA pass", "check my work", "verify this feature", "find what
+  I missed", "attack this until it's safe", or any request for a post-build
+  verification, pre-merge review, or exhaustive safety pass. Trigger it even
+  if the user doesn't say "park" — any ship-readiness or post-implementation
+  verification request qualifies. Establishes a completion contract, scopes a
+  hunk-level boundary, baselines with fingerprinted evidence, generates
+  failure predictions via lateral-thinking operators, probes every material
+  prediction, repairs in severity waves, and refuses DONE until a mechanical
+  gate and an independent judge both pass. Supports several parks running
+  concurrently in one repo without sharing or corrupting each other's ledger.
 ---
 
 # Park the car safely v2
@@ -38,9 +41,10 @@ artifacts, and anything not recorded there does not count as evidence.
 
 ```bash
 PARK="python3 <skill-dir>/scripts/park.py"   # resolve <skill-dir> once
-$PARK init          # create .park/ state + contract stub
+$PARK init --label "what you are parking"    # creates a NEW isolated park, prints its id
+export PARK_ID=<id>                          # every later command targets that park
 $PARK triage        # diff stats + risk scan -> tier + budgets
-$PARK boundary      # hunk-level NEW/MOD/risk-tags/negative-space
+$PARK boundary      # hunk-level NEW/MOD/risk-tags/negative-space + conflict check
 $PARK baseline B1 -- npm test        # fingerprinted evidence ledger
 $PARK lateral       # randomized lateral-thinking battery for prediction
 $PARK pred add ...  # falsifiable prediction records
@@ -48,9 +52,45 @@ $PARK probe ...     # probes bound to predictions
 $PARK status        # render current PARK STATE
 $PARK gate          # mechanical completion gate (exit 1 = not done)
 $PARK judgepack     # bundle for an independent fresh-context judge
+$PARK archive       # retire this park once the handoff is delivered
+```
+
+Concurrency commands:
+
+```bash
+$PARK list                                   # every park here, liveness, path conflicts
+$PARK conflicts                              # who else claims my files
+$PARK conflicts --ack <id> --why "..."       # record how the overlap is handled
+$PARK migrate --id <id>                      # lift a pre-v3 flat .park/ into parks/<id>/
 ```
 
 Run `$PARK --help` and `$PARK <cmd> --help` for exact flags.
+
+## Parallel parks
+
+Many parks can run in one repo at once. Each owns a private directory under
+`.park/parks/<id>/` and never writes to another's ledger; there is no shared
+mutable index to corrupt. Three properties make that safe, and you should
+understand them rather than trust them blindly:
+
+- **No guessing.** When more than one park is active, every command needs
+  `--park` or `PARK_ID` and refuses to run without one. A silent default is
+  exactly how two agents end up appending to a single prediction ledger.
+- **Scoped evidence.** A baseline's fingerprint covers only your boundary's
+  claimed paths — their committed blobs, working-tree status, and unstaged
+  diff. A neighbouring park committing its own files does not invalidate your
+  green; touching *your* files still does.
+- **Declared collisions.** Boundaries are compared across live parks. Shared
+  paths are reported by `boundary`, `status`, and `list`, and they block the
+  gate until you narrow the boundary, sequence the work, or
+  `conflicts --ack <id> --why "..."`. Overlap is also printed into the judge
+  pack, because evidence gathered over a contested file is weaker evidence.
+
+Isolated ledgers do not isolate the working tree. Two parks may safely audit
+different surfaces at once, but only one agent should be *editing* a given
+file. If you find another park already parked on your surface, that is a
+finding: report it, do not fight it for the working tree, and let the user
+decide who owns the repair.
 
 ## Non-negotiable rules
 
@@ -75,13 +115,23 @@ Run `$PARK --help` and `$PARK <cmd> --help` for exact flags.
 8. **The gate is the referee.** You may not declare DONE while
    `$PARK gate` fails, and you may not edit ledgers to make it pass —
    closing a prediction requires a verdict plus evidence.
+9. **One agent, one park.** Run `$PARK list` before `init`. Create your own
+   park, keep its id in `PARK_ID`, and never write to a ledger you did not
+   create. If another live park already claims your files, say so and stop —
+   two agents repairing one working tree destroy each other's evidence.
 
 ## Phase 0 — Arm: contract and triage
 
-`$PARK init` creates `.park/contract.md`. Fill every field concretely —
-outcome, verification commands, constraints, boundaries, stop conditions.
-"Tests pass" is not a contract; name the tests, the flows, and the target
-environment if deploy truth matters.
+Run `$PARK list` first. If a live park already covers this surface, stop and
+report it instead of starting a rival one. Otherwise
+`$PARK init --label "..."` creates your own park and prints its id — export
+it as `PARK_ID` immediately, because every later command needs it once a
+second park exists.
+
+`init` also writes `contract.md`. Fill every field concretely — outcome,
+verification commands, constraints, boundaries, stop conditions. "Tests pass"
+is not a contract; name the tests, the flows, and the target environment if
+deploy truth matters.
 
 `$PARK triage` reads the diff and risk surface and assigns a tier with hard
 budgets:
@@ -104,6 +154,9 @@ handoff, honestly unprobed — instead of being quietly dropped.
 untracked additions, and per-file risk tags. Extend it by hand where git can't
 see: the **runtime surface** (callers, jobs, storage, flags, integrations, UI
 paths that make the feature real) and **DO NOT TOUCH** (unrelated dirty WIP).
+The claimed paths also become your evidence scope and your collision surface,
+so if `boundary` reports overlap with another live park, resolve it here —
+before any probe spends effort on a file someone else is editing.
 A one-line caller change can activate a large payment path; a dirty file may
 hold one parked hunk and fifty unrelated ones — scope at hunk level. If two
 boundaries would produce materially different work, ask the user one focused
@@ -130,7 +183,11 @@ state → recovery — and extract invariants as falsifiable sentences
 ("a payment callback creates at most one confirmed order per provider
 transaction", not "payments should be safe"). Every P0/P1 prediction must
 threaten a named invariant; invariants are what turn brainstorming into
-targeting. Details and per-edge questions: `references/LENSES.md`.
+targeting. Details and per-edge questions: `references/LENSES.md`. If the
+parked work sends or schedules SMS, WhatsApp, email, or in-app follow-ups,
+also read `references/NOTIFICATIONS.md` — multi-channel delivery has its own
+idempotency, consent, and provider-callback invariants that generic lenses
+miss.
 
 ## Phase 4 — Lateral predict (the signature phase)
 
@@ -188,8 +245,9 @@ don't burn turns saying "still running", don't abandon them either.
 ## Phase 8 — Gate, then judge
 
 `$PARK gate` mechanically verifies: contract filled, boundary drawn, baseline
-evidence current against HEAD, every material prediction terminally
-dispositioned, no open probes on funded predictions, budgets respected. While
+evidence current for your claimed paths, every material prediction terminally
+dispositioned, no open probes on funded predictions, budgets respected, and no
+unacknowledged boundary overlap with another live park. While
 it fails, you continue — its reasons are your work queue. When it passes,
 run `$PARK judgepack` and hand the bundle to the most independent reviewer
 available (fresh subagent, or yourself after an explicit read-only context
@@ -212,7 +270,9 @@ You failed the park if you: skipped contract or boundary; edited before
 predicting; listed risks without probing; trusted another agent's green
 without raw evidence; changed a test command to manufacture green; called
 inconclusive a pass; fixed speculative noise while a confirmed P1 sat open;
-hid branch red behind feature green; bypassed or hand-edited the gate; or
-pushed/deployed/messaged externally without authorization.
+hid branch red behind feature green; bypassed or hand-edited the gate;
+wrote to a park ledger you did not create, or kept working a surface another
+live park had already claimed; or pushed/deployed/messaged externally without
+authorization.
 
 No green by omission. No safety by adjective. Park the actual car.

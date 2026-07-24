@@ -1,4 +1,4 @@
-# Park the car safely v2 — v2.0 "Valet Edition"
+# Park the car safely v2 — v3.0 "Valet Edition, Parallel"
 
 **User drove. You park. No green by omission.**
 
@@ -23,6 +23,17 @@ persists contract, boundary, baselines, prediction/probe ledgers, and tier to
 a `.park/` directory. Context compaction, restarts, and judge handoffs stop
 being failure modes.
 
+**Parks run in parallel without corrupting each other (3.0).** Every park owns
+a private directory under `.park/parks/<id>/`; there is no shared mutable
+index. When more than one park is active, commands *refuse to run* without
+`--park`/`PARK_ID` rather than silently defaulting into someone else's ledger.
+Evidence fingerprints are scoped to your boundary's claimed paths, so a
+neighbouring park committing its own files no longer marks your baselines
+stale. Overlapping file claims are detected across parks, block the gate until
+narrowed or acknowledged, and are printed into the judge pack. A pre-3.0 flat
+`.park/` keeps working as the `default` park, so an in-flight park is never
+broken by upgrading.
+
 **A mechanical completion gate.** `park.py gate` exits non-zero — with a
 work-queue of reasons — while any material prediction lacks a disposition,
 any probe is open, the contract has TODOs, or the latest baseline's
@@ -30,12 +41,13 @@ HEAD/tree fingerprint doesn't match the working tree (stale evidence).
 "Looks done" is no longer an available verdict.
 
 **Lateral prediction as a first-class engine.** `park.py lateral` deals a
-randomized hand from twelve divergence operators (Invert/pre-mortem, Swap the
-Domain, Rotate the Actor, Shift Time, Shift Scale, Negative Space, Succeed
-Too Hard, Cut the Wire, Random Entry, The Liar, First/Last Time, Money Walks)
-plus de Bono random-entry seed words — deliberate entropy so the agent
-escapes its training-data ruts — followed by a strict convergence funnel into
-budgeted, falsifiable prediction records. See `references/LATERAL.md`.
+randomized hand from thirteen divergence operators (Invert/pre-mortem, Swap
+the Domain, Rotate the Actor, Shift Time, Shift Scale, Negative Space, Succeed
+Too Hard, Cut the Wire, Random Entry, The Liar, First/Last Time, Money Walks,
+The Neighbour) plus de Bono random-entry seed words — deliberate entropy so
+the agent escapes its training-data ruts — followed by a strict convergence
+funnel into budgeted, falsifiable prediction records. See
+`references/LATERAL.md`.
 
 **Triage tiers with hard budgets.** QUICK / STANDARD / DEEP assigned from
 diff size and a risk-pattern scan; budgets cap funded predictions and probes
@@ -58,6 +70,10 @@ git clone <this-repo> && cd <this-repo>
 ./install.sh --project    # -> ./.cursor/skills + ./.agents/skills (as park-the-car-safely-v2)
 ```
 
+Add `--with-v1` to also install the legacy edition from the `v1` branch
+alongside it (`./install.sh --cursor --with-v1`). The two register under
+different skill names, so they coexist rather than compete.
+
 Requires only `git` and Python 3.8+ on the agent's machine.
 
 ## Use
@@ -79,17 +95,27 @@ gate's current work queue.
 
 ```
 park-the-car-safely-v2/
-├── SKILL.md                  # orchestrator (218 lines)
-├── scripts/park.py           # state, triage, boundary, baselines, ledgers,
-│                             # lateral dealer, gate, judgepack
+├── SKILL.md                  # orchestrator
+├── scripts/
+│   ├── park.py               # parks, triage, boundary, baselines, ledgers,
+│   │                         # lateral dealer, conflicts, gate, judgepack
+│   └── test_park.sh          # 30 assertions on the concurrency guarantees
 ├── references/
-│   ├── LATERAL.md            # the twelve operators + convergence funnel
+│   ├── LATERAL.md            # the thirteen operators + convergence funnel
 │   ├── PROBES.md             # probe levels + recipes
 │   ├── LENSES.md             # stack-keyed domain lenses
+│   ├── NOTIFICATIONS.md      # SMS/WhatsApp/email idempotency + consent
 │   ├── JUDGE.md              # gate semantics + independent judge protocol
 │   └── TEMPLATES.md          # contract + handoff
 └── evals/                    # seeded-bug scenarios + scorer
 ```
+
+## Versions
+
+`main` carries v2 (current). The original prose-only skill is preserved on the
+[`v1` branch](https://github.com/vagdotdev/park-the-car-safely/tree/v1) — it
+installs as the separate skill `park-the-car-safely`, so both editions can sit
+side by side in one agent's skill directory.
 
 ## Verification
 
@@ -100,6 +126,19 @@ baselines → lateral deal → budget enforcement → pred/probe lifecycle
 without user flag, probes without expect-fail) → gate failing with reasons →
 gate passing → judgepack. The eval scorer is validated against a synthetic
 perfect run and a lossy run.
+
+The concurrency guarantees have their own suite — run it after any change to
+`park.py`:
+
+```bash
+bash park-the-car-safely-v2/scripts/test_park.sh   # 30 passed, 0 failed
+```
+
+It builds throwaway git repos and asserts ledger isolation, refusal to guess
+between parks, scoped fingerprints (a neighbour's commit must not stale your
+evidence, your own edit must), conflict detection and gate-blocking, lock-safe
+parallel appends, archive semantics, and pre-3.0 flat-layout compatibility
+plus `migrate`.
 
 ## License
 

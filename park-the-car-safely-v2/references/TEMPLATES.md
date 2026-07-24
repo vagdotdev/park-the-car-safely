@@ -1,10 +1,10 @@
 # Templates
 
 Most ledgers (baseline, predictions, probes) are produced by `park.py` and
-live in `.park/` — do not duplicate them by hand. These are the two artifacts
-the human actually reads.
+live in your park's own directory — `.park/parks/<park-id>/` — so do not
+duplicate them by hand. These are the two artifacts the human actually reads.
 
-## Completion contract (`.park/contract.md`, created by `park.py init`)
+## Completion contract (`contract.md`, created by `park.py init`)
 
 ```text
 PARK COMPLETION CONTRACT
@@ -25,7 +25,7 @@ Constraints:
   speculative refactors; no unauthorized external mutations.
 
 Boundaries:
-  Reference .park/boundary.json plus the hand-added runtime surface and
+  Reference this park's boundary.json plus the hand-added runtime surface and
   DO NOT TOUCH paths.
 
 Stop when:
@@ -39,7 +39,8 @@ Stop when:
 
 ```text
 PARKED: <feature>                                    VERDICT: <DONE|BLOCKED|STOPPED|PAUSED>
-Tier: <QUICK|STANDARD|DEEP>   Boundary: <one line + pointer to .park/boundary.json>
+Park: <park-id>               Tier: <QUICK|STANDARD|DEEP>
+Boundary: <one line + pointer to the park's boundary.json>
 Contract: <proved | which clause failed and why>
 
 Baseline -> final:
@@ -47,7 +48,8 @@ Baseline -> final:
   ...
 
 Predictions: <total> funded / <n> disproved / <n> fixed-verified / <n> blocked / <n> accepted-risk
-Unfunded hypotheses: <n> (listed in .park/unfunded — honestly unprobed)
+Unfunded hypotheses: <n> (listed in unfunded.json — honestly unprobed)
+Concurrent parks: <none | ids sharing files, and how the overlap was handled>
 
 Fixed: <one line per fix: PRED-id, cause, smallest patch, regression probe>
 Open P0/P1: <none | list — implies verdict is not DONE>
@@ -57,5 +59,5 @@ Leftovers: <P3s and observations, not fixed by design>
 Commit/push/deploy status: <exact state; nothing pushed/deployed without authorization>
 ```
 
-Keep the handoff short — the `.park/` ledgers did the long work, and
+Keep the handoff short — the park's ledgers did the long work, and
 `park.py judgepack` bundles them for anyone who wants the evidence.

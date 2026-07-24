@@ -100,6 +100,14 @@ auditor: where can it be created from nothing, duplicated, destroyed without
 record, or moved without authority? Conservation-law violations are always
 P0.
 
+**13. THE NEIGHBOUR.** Assume you are not alone: another agent, migration,
+deploy, or cron is touching this repo, database, or vendor account right now.
+List every place the code — or your own park — assumes exclusive ownership of
+a file, a row, a schema version, an env var, a session, or a vendor's rate
+limit. Then ask what the second writer does to it. This move exists because
+"only one process does this" is the assumption most often true in testing and
+false in production.
+
 ## Divergence rules
 
 - Work from the runtime graph and invariant list, with the diff closed.
