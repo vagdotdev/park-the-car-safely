@@ -1,0 +1,27 @@
+{
+  "scenario": "s3-fail-open",
+  "brief": "Park the report/export module in app.py: flag-gated exports and per-day audit reports.",
+  "bugs": [
+    {
+      "id": "BUG-1",
+      "sev": "P0",
+      "summary": "missing 'restrict_exports' flag evaluates falsy — restriction fails open in unconfigured environments",
+      "likely_moves": ["negative-space", "lifecycle"],
+      "match_any": ["fail open", "fails open", "missing flag", "flag absent", "unset", "default", "falsy", "new environment", "config"]
+    },
+    {
+      "id": "BUG-2",
+      "sev": "P2",
+      "summary": "naive 24h day-window math breaks on DST transition days",
+      "likely_moves": ["time-shift"],
+      "match_any": ["dst", "daylight", "timezone", "time zone", "24", "midnight", "boundary", "clock"]
+    },
+    {
+      "id": "BUG-3",
+      "sev": "P1",
+      "summary": "export_all loads every row into memory; no pagination/streaming at production scale",
+      "likely_moves": ["scale-shift", "overload"],
+      "match_any": ["memory", "scale", "million", "pagination", "stream", "all rows", "oom", "large", "unbounded"]
+    }
+  ]
+}

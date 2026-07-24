@@ -1,0 +1,27 @@
+{
+  "scenario": "s1-tenant-leak",
+  "brief": "Park the appointments module in app.py: a small clinic API where staff view, cancel, and export appointments.",
+  "bugs": [
+    {
+      "id": "BUG-1",
+      "sev": "P0",
+      "summary": "get_appointment has no tenant check; any user reads any clinic's appointment by id (IDOR)",
+      "likely_moves": ["actor", "conservation"],
+      "match_any": ["tenant", "clinic", "another user", "other user", "idor", "cross", "any appointment", "guess"]
+    },
+    {
+      "id": "BUG-2",
+      "sev": "P0",
+      "summary": "cancel_appointment trusts client-supplied is_admin_ui flag; server never derives role",
+      "likely_moves": ["actor", "liar"],
+      "match_any": ["client", "flag", "is_admin", "ui only", "direct api", "trusts", "role"]
+    },
+    {
+      "id": "BUG-3",
+      "sev": "P1",
+      "summary": "can_export fails open for None/unknown role (legacy rows without backfill)",
+      "likely_moves": ["lifecycle", "negative-space"],
+      "match_any": ["fail open", "fails open", "none role", "unknown role", "null role", "legacy", "backfill", "default allow"]
+    }
+  ]
+}

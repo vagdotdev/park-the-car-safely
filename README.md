@@ -1,110 +1,107 @@
-# Park the car safely
+# Park the car v2 — v2.0 "Valet Edition"
 
 **User drove. You park. No green by omission.**
 
-A long-running Cursor Agent Skill for post-implementation QA. It treats parking
-as a standing objective, not a one-turn checklist:
+An evidence-driven post-implementation QA skill for coding agents (Claude
+Code, Cursor, and anything that reads `SKILL.md` conventions). The agent
+establishes a completion contract, scopes a hunk-level boundary, baselines
+with fingerprinted evidence, generates failure predictions with a
+**randomized lateral-thinking battery**, probes every material prediction,
+repairs in severity waves, and cannot declare DONE until a **mechanical gate**
+and an independent judge both pass.
 
-```text
-contract → scope → baseline → system map → exhaustive predict
-         → prediction probes → severity repair waves
-         → continuous retest → re-predict → independent judge → handoff
-```
+v2 is a ground-up re-engineering of
+[vagdotdev/park-the-car-safely](https://github.com/vagdotdev/park-the-car-safely)
+(MIT). The original's discipline — every prediction ends disproved,
+fixed-verified, blocked, or user-accepted — is preserved. Everything around
+it changed.
 
-The skill is deliberately aggressive about weak evidence:
+## What's actually different
 
-- every material prediction must be probed;
-- every confirmed defect must be fixed, blocked, or explicitly accepted;
-- every fix wave reruns the frozen baseline and affected-path probes;
-- every completion claim is judged against a concrete contract;
-- whole-branch red cannot be hidden behind feature-level green.
+**State lives on disk, not in vibes.** `scripts/park.py` (stdlib-only Python)
+persists contract, boundary, baselines, prediction/probe ledgers, and tier to
+a `.park/` directory. Context compaction, restarts, and judge handoffs stop
+being failure modes.
 
-It remains conservative about edits: no redesign, no unrelated cleanup, no
-speculative rewrites, and no push/deploy/migration without permission.
+**A mechanical completion gate.** `park.py gate` exits non-zero — with a
+work-queue of reasons — while any material prediction lacks a disposition,
+any probe is open, the contract has TODOs, or the latest baseline's
+HEAD/tree fingerprint doesn't match the working tree (stale evidence).
+"Looks done" is no longer an available verdict.
 
-## What changed in the long-range edition
+**Lateral prediction as a first-class engine.** `park.py lateral` deals a
+randomized hand from twelve divergence operators (Invert/pre-mortem, Swap the
+Domain, Rotate the Actor, Shift Time, Shift Scale, Negative Space, Succeed
+Too Hard, Cut the Wire, Random Entry, The Liar, First/Last Time, Money Walks)
+plus de Bono random-entry seed words — deliberate entropy so the agent
+escapes its training-data ruts — followed by a strict convergence funnel into
+budgeted, falsifiable prediction records. See `references/LATERAL.md`.
 
-The main skill now acts as an orchestrator under 500 lines. Detailed playbooks
-load only when relevant:
+**Triage tiers with hard budgets.** QUICK / STANDARD / DEEP assigned from
+diff size and a risk-pattern scan; budgets cap funded predictions and probes
+so trivial diffs don't get a siege and payment refactors don't get a skim.
+Overflow ideas go to an honest **unfunded list**, visible in the handoff.
 
-| File | Purpose |
-|---|---|
-| [`SKILL.md`](./park-the-car-safely/SKILL.md) | Core standing objective and ten-phase park state machine |
-| [`GOAL-LOOP.md`](./park-the-car-safely/GOAL-LOOP.md) | Completion contracts, continuation, wait barriers, conservative judge, blocked audit |
-| [`PREDICT-PLAYBOOK.md`](./park-the-car-safely/PREDICT-PLAYBOOK.md) | Runtime graphs, invariants, breadth/depth prediction, P0–P3 records |
-| [`PROBE-AND-LOOP.md`](./park-the-car-safely/PROBE-AND-LOOP.md) | Turn predictions into static/unit/API/browser/concurrency/environment probes |
-| [`DOMAIN-LENSES.md`](./park-the-car-safely/DOMAIN-LENSES.md) | Auth, tenancy, money, schema, races, integrations, UI, ops, privacy, AI |
-| [`REPORT-TEMPLATES.md`](./park-the-car-safely/REPORT-TEMPLATES.md) | State, baseline, prediction, probe, fix-wave, judge, blocked, and handoff artifacts |
-| [`notification-idempotency.md`](./park-the-car-safely/notification-idempotency.md) | SMS, WhatsApp, email, in-app, cron, claim, and provider-settlement checks |
+**A built-in eval harness.** `evals/` ships fixture apps with seeded,
+documented defects and a scorer that measures detection and process
+integrity. The skill's quality is a number you can regress, not an adjective.
 
-The standing-goal design is informed by Ralph-loop systems and Hermes Agent’s
-completion-contract pattern: outcome, verification, constraints, boundaries,
-stop conditions, continuation, wait, and conservative evidence-based judging.
-This repository implements those ideas as agent instructions; it does not
-pretend a markdown skill can install Hermes runtime persistence.
+**~72% fewer instruction lines (651 vs 2,367)** than v1 across SKILL.md + references, with
+higher instruction density (dedup, no repeated rules, rhetoric trimmed).
 
 ## Install
 
-### Cursor remote rule (when GitHub skill import is available)
-
-1. Open **Cursor Settings → Rules**
-2. Choose **Add Rule → Remote Rule (GitHub)**
-3. Paste:
-
-```text
-https://github.com/vagdotdev/park-the-car-safely
-```
-
-### Manual personal install
-
 ```bash
-git clone https://github.com/vagdotdev/park-the-car-safely.git
-mkdir -p ~/.cursor/skills
-rm -rf ~/.cursor/skills/park-the-car-safely
-cp -R park-the-car-safely/park-the-car-safely ~/.cursor/skills/park-the-car-safely
+git clone <this-repo> && cd <this-repo>
+./install.sh --claude     # -> ~/.claude/skills/park-the-car-v2
+./install.sh --cursor     # -> ~/.cursor/skills/park-the-car-v2
+./install.sh --project    # -> ./.cursor/skills + ./.agents/skills (as park-the-car-v2)
 ```
 
-### Manual project install
-
-```bash
-mkdir -p .cursor/skills
-rm -rf .cursor/skills/park-the-car-safely
-cp -R /path/to/park-the-car-safely/park-the-car-safely .cursor/skills/park-the-car-safely
-```
-
-The same package works under `.agents/skills/` for tools that use that
-convention.
+Requires only `git` and Python 3.8+ on the agent's machine.
 
 ## Use
 
-Invoke:
+Say any of: "park the car safely" · "I drove, you park" · "review my changes
+before I ship" · "is this safe to ship?" · "do a QA pass on this feature".
 
-```text
-/park-the-car-safely
+The agent will drive `park.py` itself:
+
+```
+init → triage → boundary → baseline … → lateral → pred/probe ledgers
+     → fix waves → gate (must pass) → judgepack → handoff
 ```
 
-Or say:
+`python3 scripts/park.py status` at any time shows live park state and the
+gate's current work queue.
 
-- “Park the car safely.”
-- “I drove; you park.”
-- “Run the full checking loop.”
-- “Keep attacking this feature until the evidence says it is safe.”
-- “Do a long-range post-drive QA pass.”
+## Layout
 
-## Completion standard
+```
+park-the-car-v2/
+├── SKILL.md                  # orchestrator (218 lines)
+├── scripts/park.py           # state, triage, boundary, baselines, ledgers,
+│                             # lateral dealer, gate, judgepack
+├── references/
+│   ├── LATERAL.md            # the twelve operators + convergence funnel
+│   ├── PROBES.md             # probe levels + recipes
+│   ├── LENSES.md             # stack-keyed domain lenses
+│   ├── JUDGE.md              # gate semantics + independent judge protocol
+│   └── TEMPLATES.md          # contract + handoff
+└── evals/                    # seeded-bug scenarios + scorer
+```
 
-The skill does not stop at “tests pass.” It stops at one of:
+## Verification
 
-- **DONE** — completion contract proved with current evidence;
-- **BLOCKED** — definitive external/user-owned stop condition with attempts and
-  exact resume point;
-- **STOPPED** — the user accepted open P0/P1 risk; never presented as
-  ship-ready;
-- **PAUSED** — user/platform-required pause or no new tactic, with state
-  preserved.
-
-Anything else means continue.
+Everything below is exercised by an end-to-end run in a scratch repo (see
+CHANGELOG for the tested flow): init → triage → boundary → red/green
+baselines → lateral deal → budget enforcement → pred/probe lifecycle
+(including the refusals: closing without evidence, accepted-risk on P0
+without user flag, probes without expect-fail) → gate failing with reasons →
+gate passing → judgepack. The eval scorer is validated against a synthetic
+perfect run and a lossy run.
 
 ## License
 
-MIT — use it, fork it, make it stricter.
+MIT. Derived from vagdotdev/park-the-car-safely (MIT) — use it, fork it,
+make it stricter.

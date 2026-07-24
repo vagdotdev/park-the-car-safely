@@ -1,0 +1,27 @@
+{
+  "scenario": "s2-webhook-double",
+  "brief": "Park the payment webhook handler in app.py. The provider retries any request that doesn't return quickly.",
+  "bugs": [
+    {
+      "id": "BUG-1",
+      "sev": "P0",
+      "summary": "amount trusted from webhook body instead of server price book",
+      "likely_moves": ["conservation", "liar"],
+      "match_any": ["amount", "price", "client", "payload", "tamper", "trusted", "server price"]
+    },
+    {
+      "id": "BUG-2",
+      "sev": "P0",
+      "summary": "dedup mark set after slow fulfilment with no durable claim; provider retry mid-flight double-processes",
+      "likely_moves": ["cut-wire", "overload", "time-shift"],
+      "match_any": ["retry", "duplicate", "double", "idempoten", "race", "concurrent", "claim", "twice"]
+    },
+    {
+      "id": "BUG-3",
+      "sev": "P1",
+      "summary": "no transaction boundary: crash between fulfil and record leaves fulfilled-but-unrecorded state",
+      "likely_moves": ["cut-wire"],
+      "match_any": ["crash", "partial", "transaction", "atomic", "kill", "between", "inconsistent", "orphan"]
+    }
+  ]
+}
