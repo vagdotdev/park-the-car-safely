@@ -1,4 +1,4 @@
-# Park the car v2 — v2.0 "Valet Edition"
+# Park the car safely v2 — v2.0 "Valet Edition"
 
 **User drove. You park. No green by omission.**
 
@@ -53,9 +53,9 @@ higher instruction density (dedup, no repeated rules, rhetoric trimmed).
 
 ```bash
 git clone <this-repo> && cd <this-repo>
-./install.sh --claude     # -> ~/.claude/skills/park-the-car-v2
-./install.sh --cursor     # -> ~/.cursor/skills/park-the-car-v2
-./install.sh --project    # -> ./.cursor/skills + ./.agents/skills (as park-the-car-v2)
+./install.sh --claude     # -> ~/.claude/skills/park-the-car-safely-v2
+./install.sh --cursor     # -> ~/.cursor/skills/park-the-car-safely-v2
+./install.sh --project    # -> ./.cursor/skills + ./.agents/skills (as park-the-car-safely-v2)
 ```
 
 Requires only `git` and Python 3.8+ on the agent's machine.
@@ -78,7 +78,7 @@ gate's current work queue.
 ## Layout
 
 ```
-park-the-car-v2/
+park-the-car-safely-v2/
 ├── SKILL.md                  # orchestrator (218 lines)
 ├── scripts/park.py           # state, triage, boundary, baselines, ledgers,
 │                             # lateral dealer, gate, judgepack

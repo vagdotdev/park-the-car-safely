@@ -1,5 +1,5 @@
 ---
-name: park-the-car-v2
+name: park-the-car-safely-v2
 description: >-
   Evidence-driven post-implementation QA and ship-readiness loop with lateral
   failure prediction and a mechanical completion gate. Use this skill whenever
@@ -16,7 +16,7 @@ description: >-
   DONE until a mechanical gate and an independent judge both pass.
 ---
 
-# Park the car v2
+# Park the car safely v2
 
 The user already drove. You are the closer. Your job is to attack the finished
 surface until its important claims either survive evidence or break in a way
